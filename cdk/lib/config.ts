@@ -21,27 +21,46 @@ const resolveMinecraftEnvVars = (json = ''): MinecraftImageEnv => {
   }
 };
 
+const {
+  DOMAIN_NAME,
+  SUBDOMAIN_PART,
+  SERVER_REGION ,
+  MINECRAFT_EDITION,
+  SHUTDOWN_MINUTES,
+  STARTUP_MINUTES,
+  USE_FARGATE_SPOT,
+  TASK_CPU,
+  TASK_MEMORY,
+  VPC_ID,
+  MINECRAFT_IMAGE_ENV_VARS_JSON,
+  SNS_EMAIL_ADDRESS,
+  TWILIO_PHONE_FROM,
+  TWILIO_PHONE_TO,
+  TWILIO_ACCOUNT_ID,
+  TWILIO_AUTH_CODE,
+  DEBUG
+} = process.env;
+
 export const resolveConfig = (): StackConfig => ({
-  domainName: process.env.DOMAIN_NAME || '',
-  subdomainPart: process.env.SUBDOMAIN_PART || 'minecraft',
-  serverRegion: process.env.SERVER_REGION || 'us-east-1',
-  minecraftEdition:
-    process.env.MINECRAFT_EDITION === 'bedrock' ? 'bedrock' : 'java',
-  shutdownMinutes: process.env.SHUTDOWN_MINUTES || '20',
-  startupMinutes: process.env.STARTUP_MINUTES || '10',
-  useFargateSpot: stringAsBoolean(process.env.USE_FARGATE_SPOT) || false,
-  taskCpu: +(process.env.TASK_CPU || 1024),
-  taskMemory: +(process.env.TASK_MEMORY || 2048),
-  vpcId: process.env.VPC_ID || '',
+  domainName: DOMAIN_NAME || '',
+  subdomainPart: SUBDOMAIN_PART || 'pufferpanel',
+  serverRegion: SERVER_REGION || 'us-east-1',
+  minecraftEdition: MINECRAFT_EDITION || 'pufferpanel',
+  shutdownMinutes: SHUTDOWN_MINUTES || '20',
+  startupMinutes: STARTUP_MINUTES || '10',
+  useFargateSpot: stringAsBoolean(USE_FARGATE_SPOT) || false,
+  taskCpu: +(TASK_CPU || 1024),
+  taskMemory: +(TASK_MEMORY || 2048),
+  vpcId: VPC_ID || '',
   minecraftImageEnv: resolveMinecraftEnvVars(
-    process.env.MINECRAFT_IMAGE_ENV_VARS_JSON
+    MINECRAFT_IMAGE_ENV_VARS_JSON
   ),
-  snsEmailAddress: process.env.SNS_EMAIL_ADDRESS || '',
+  snsEmailAddress: SNS_EMAIL_ADDRESS || '',
   twilio: {
-    phoneFrom: process.env.TWILIO_PHONE_FROM || '',
-    phoneTo: process.env.TWILIO_PHONE_TO || '',
-    accountId: process.env.TWILIO_ACCOUNT_ID || '',
-    authCode: process.env.TWILIO_AUTH_CODE || '',
+    phoneFrom: TWILIO_PHONE_FROM || '',
+    phoneTo: TWILIO_PHONE_TO || '',
+    accountId: TWILIO_ACCOUNT_ID || '',
+    authCode: TWILIO_AUTH_CODE || '',
   },
-  debug: stringAsBoolean(process.env.DEBUG) || false,
+  debug: stringAsBoolean(DEBUG) || false,
 });

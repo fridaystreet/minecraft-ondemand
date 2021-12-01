@@ -1,6 +1,3 @@
-import type { Protocol } from 'aws-cdk-lib/lib/aws-ecs';
-import type { Port } from 'aws-cdk-lib/lib/aws-ec2';
-
 interface TwilioConfig {
   /**
    * Your twilio phone number.
@@ -28,7 +25,7 @@ interface TwilioConfig {
 
 export type MinecraftImageEnv = Record<string, string>;
 
-export type MinecraftEdition = 'java' | 'bedrock';
+export type MinecraftEdition = 'pufferpanel' | 'java' | 'bedrock';
 
 export interface StackConfig {
   /**
@@ -47,16 +44,16 @@ export interface StackConfig {
   /**
    * The AWS region to deploy your minecraft server in.
    *
-   * @default "us-east-1"
+   * @default "ap-southeast-2"
    */
   serverRegion: string;
   /**
    * Edition of Minecraft server to run. Accepted values are are `java` or `bedrock` for [Minecraft Java Docker] or
    * [Minecraft Bedrock Docker], respectively.
    *
-   * @default "java"
+   * @default "pufferpanel"
    */
-  minecraftEdition: MinecraftEdition;
+  minecraftEdition: string;
   /**
    * Number of minutes to wait for a connection after starting before terminating (optional, default 10)
    *
@@ -147,23 +144,3 @@ export interface StackConfig {
   debug: boolean;
 }
 
-export interface MinecraftEditionConfig {
-  /**
-   * Name of the docker image to pull for the Minecraft server
-   *
-   * @example 'itzg/minecraft-server'
-   */
-  image: string;
-  /**
-   * Port number to run the Minecraft server on
-   */
-  port: number;
-  /**
-   * Protocol for the Minecraft server
-   */
-  protocol: Protocol;
-  /**
-   * The ingress rule port to be used for the service security group
-   */
-  ingressRulePort: Port;
-}

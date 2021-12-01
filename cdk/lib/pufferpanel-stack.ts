@@ -12,18 +12,20 @@ import {
   Arn,
   ArnFormat,
 } from 'aws-cdk-lib';
+import { Port } from 'aws-cdk-lib/lib/aws-ec2';
+import { Protocol } from 'aws-cdk-lib/lib/aws-ecs';
 import { Construct } from 'constructs';
 import { constants } from './constants';
 import { SSMParameterReader } from './ssm-parameter-reader';
 import { StackConfig } from './types';
-import { getMinecraftServerConfig, isDockerInstalled } from './util';
+import { isDockerInstalled } from './util';
 
-interface MinecraftStackProps extends StackProps {
+interface PufferpanelStackProps extends StackProps {
   config: Readonly<StackConfig>;
 }
 
-export class MinecraftStack extends Stack {
-  constructor(scope: Construct, id: string, props: MinecraftStackProps) {
+export class PufferpanelStack extends Stack {
+  constructor(scope: Construct, id: string, props: PufferpanelStackProps) {
     super(scope, id, props);
 
     const { config } = props;
@@ -42,7 +44,7 @@ export class MinecraftStack extends Stack {
 
     const accessPoint = new efs.AccessPoint(this, 'AccessPoint', {
       fileSystem,
-      path: '/minecraft',
+      path: '/pufferpanel',
       posixUser: {
         uid: '1000',
         gid: '1000',
@@ -76,7 +78,7 @@ export class MinecraftStack extends Stack {
 
     const ecsTaskRole = new iam.Role(this, 'TaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      description: 'Minecraft ECS task role',
+      description: 'Pufferpanel ECS task role',
     });
 
     efsReadWriteDataPolicy.attachToRole(ecsTaskRole);
@@ -97,7 +99,29 @@ export class MinecraftStack extends Stack {
         cpu: config.taskCpu,
         volumes: [
           {
-            name: constants.ECS_VOLUME_NAME,
+            name: constants.ECS_CONFIG_VOLUME_NAME,
+            efsVolumeConfiguration: {
+              fileSystemId: fileSystem.fileSystemId,
+              transitEncryption: 'ENABLED',
+              authorizationConfig: {
+                accessPointId: accessPoint.accessPointId,
+                iam: 'ENABLED',
+              },
+            },
+          },
+          {
+            name: constants.ECS_SERVERS_VOLUME_NAME,
+            efsVolumeConfiguration: {
+              fileSystemId: fileSystem.fileSystemId,
+              transitEncryption: 'ENABLED',
+              authorizationConfig: {
+                accessPointId: accessPoint.accessPointId,
+                iam: 'ENABLED',
+              },
+            },
+          },
+          {
+            name: constants.ECS_EMAILS_VOLUME_NAME,
             efsVolumeConfiguration: {
               fileSystemId: fileSystem.fileSystemId,
               transitEncryption: 'ENABLED',
@@ -111,22 +135,43 @@ export class MinecraftStack extends Stack {
       }
     );
 
-    const minecraftServerConfig = getMinecraftServerConfig(
-      config.minecraftEdition
-    );
+    const createPortMappings = (hostPort: number, containerPort: number, protocol: Protocol, count: number ) => {
+      return Array(count).map((v, i) => ({
+        containerPort: containerPort+i,
+        hostPort: hostPort+i,
+        protocol
+      }));
+    }
 
-    const minecraftServerContainer = new ecs.ContainerDefinition(
+    const pufferpanelServerContainer = new ecs.ContainerDefinition(
       this,
       'ServerContainer',
       {
         containerName: constants.MC_SERVER_CONTAINER_NAME,
-        image: ecs.ContainerImage.fromRegistry(minecraftServerConfig.image),
+        image: ecs.ContainerImage.fromRegistry(constants.PUFFER_PANEL_DOCKER_IMAGE),
         portMappings: [
           {
-            containerPort: minecraftServerConfig.port,
-            hostPort: minecraftServerConfig.port,
-            protocol: minecraftServerConfig.protocol,
+            containerPort: 8080,
+            hostPort: 8080,
+            protocol: Protocol.TCP,
           },
+          {
+            containerPort: 5657,
+            hostPort: 5657,
+            protocol: Protocol.TCP
+          },
+          {
+            containerPort: 25565,
+            hostPort: 25565,
+            protocol: Protocol.TCP
+          },
+          {
+            containerPort: 19132,
+            hostPort: 19132,
+            protocol: Protocol.UDP
+          }
+          // ...createPortMappings(25565, 25565, Protocol.TCP, 5),
+          // ...createPortMappings(19132, 19132, Protocol.UDP, 5)
         ],
         environment: config.minecraftImageEnv,
         essential: false,
@@ -140,9 +185,21 @@ export class MinecraftStack extends Stack {
       }
     );
 
-    minecraftServerContainer.addMountPoints({
-      containerPath: '/data',
-      sourceVolume: constants.ECS_VOLUME_NAME,
+    pufferpanelServerContainer.addMountPoints({
+      containerPath: '/etc/pufferpanel',
+      sourceVolume: constants.ECS_CONFIG_VOLUME_NAME,
+      readOnly: false,
+    });
+
+    pufferpanelServerContainer.addMountPoints({
+      containerPath: '/var/lib/pufferpanel/servers',
+      sourceVolume: constants.ECS_SERVERS_VOLUME_NAME,
+      readOnly: false,
+    });
+
+    pufferpanelServerContainer.addMountPoints({
+      containerPath: '/pufferpanel/email',
+      sourceVolume: constants.ECS_EMAILS_VOLUME_NAME,
       readOnly: false,
     });
 
@@ -151,16 +208,31 @@ export class MinecraftStack extends Stack {
       'ServiceSecurityGroup',
       {
         vpc,
-        description: 'Security group for Minecraft on-demand',
+        description: 'Security group for Pufferpanel on-demand',
       }
     );
 
     serviceSecurityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
-      minecraftServerConfig.ingressRulePort
+      Port.tcp(80),
     );
 
-    const minecraftServerService = new ecs.FargateService(
+    serviceSecurityGroup.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      Port.tcp(5657),
+    );
+
+    serviceSecurityGroup.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      Port.tcpRange(25565, 25665),
+    );
+
+    serviceSecurityGroup.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      Port.udpRange(19132, 19232),
+    );
+
+    const pufferpanelServerService = new ecs.FargateService(
       this,
       'FargateService',
       {
@@ -185,7 +257,7 @@ export class MinecraftStack extends Stack {
 
     /* Allow access to EFS from Fargate service security group */
     fileSystem.connections.allowDefaultPortFrom(
-      minecraftServerService.connections
+      pufferpanelServerService.connections
     );
 
     const hostedZoneId = new SSMParameterReader(
@@ -261,7 +333,7 @@ export class MinecraftStack extends Stack {
           effect: iam.Effect.ALLOW,
           actions: ['ecs:*'],
           resources: [
-            minecraftServerService.serviceArn,
+            pufferpanelServerService.serviceArn,
             /* arn:aws:ecs:<region>:<account_number>:task/minecraft/* */
             Arn.format(
               {

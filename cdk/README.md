@@ -43,7 +43,26 @@ subdomain (defaults to `minecraft`).
 
 See the section on [Configuration](#configuration) for more configuration options.
 
-### 4. Build and Deploy
+### 4. Set build env vars
+
+Need to set this as otherwise it fails creating the cloudformation role with the old bootstrap method
+
+```bash
+export CDK_NEW_BOOTSTRAP=1
+```
+
+If you get the following error:
+"Cannot retrieve value from context provider hosted-zone since account/region are not specified at the stack level. Either configure "env" with explicit account and region when you define your stack, or use the environment variables "CDK_DEFAULT_ACCOUNT" and "CDK_DEFAULT_REGION" to inherit environment information from the CLI (not recommended for production stacks)"
+
+Found the easiest way it to just set them manually
+
+```bash
+export CDK_DEFAULT_ACCOUNT=<your aws account ID>
+export CDK_DEFAULT_REGION=us-east-1
+```
+Note - must be set to us-east-1
+
+### 5. Build and Deploy
 
 Build and deploy the solution by running:
 
