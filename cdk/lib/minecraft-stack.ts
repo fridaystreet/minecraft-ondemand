@@ -12,6 +12,7 @@ import {
   Arn,
   ArnFormat,
 } from 'aws-cdk-lib';
+import { Port } from 'aws-cdk-lib/lib/aws-ec2';
 import { Construct } from 'constructs';
 import { constants } from './constants';
 import { SSMParameterReader } from './ssm-parameter-reader';
@@ -158,6 +159,11 @@ export class MinecraftStack extends Stack {
     serviceSecurityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
       minecraftServerConfig.ingressRulePort
+    );
+
+    serviceSecurityGroup.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      Port.udp(19132)
     );
 
     const minecraftServerService = new ecs.FargateService(

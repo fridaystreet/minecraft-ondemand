@@ -6,9 +6,9 @@
   },
   "scripts": {
     "prebuild": "npm ci",
-    "build": "npx aws-cdk bootstrap",
-    "deploy": "npx aws-cdk deploy --all",
-    "destroy": "npx aws-cdk destroy --all"
+    "build": "npx aws-cdk bootstrap --profile personal",
+    "deploy": "npx aws-cdk deploy --all --profile personal",
+    "destroy": "npx aws-cdk destroy --all --profile personal"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
