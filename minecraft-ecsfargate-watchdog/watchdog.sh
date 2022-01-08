@@ -102,7 +102,7 @@ then
   STARTED=0
   while [ $STARTED -lt 1 ]
   do
-    CONNECTIONS=$(netstat -atn | grep :25575 | grep LISTEN | wc -l)
+    CONNECTIONS=$(netstat -atn | grep :25565 | grep LISTEN | wc -l)
     STARTED=$(($STARTED + $CONNECTIONS))
     if [ $STARTED -gt 0 ] ## minecraft actively listening, break out of loop
     then
@@ -132,10 +132,15 @@ CONNECTED=0
 while [ $CONNECTED -lt 1 ]
 do
   echo Waiting for connection, minute $COUNTER out of $STARTUPMIN...
-  [ "$EDITION" == "java" ] && CONNECTIONS=$(netstat -atn | grep :25565 | grep ESTABLISHED | wc -l)
-  [ "$EDITION" == "bedrock" ] && CONNECTIONS=$((echo -en "$BEDROCKPING" && sleep 1) | ncat -w 1 -u 127.0.0.1 19132 | cut -c34- | awk -F\; '{ print $5 }')
-  [ -n "$CONNECTIONS" ] || CONNECTIONS=0
-  CONNECTED=$(($CONNECTED + $CONNECTIONS))
+  JAVACONNECTIONS=$(netstat -atn | grep :25565 | grep ESTABLISHED | wc -l | xargs)
+  BEDROCKCONNECTIONS=$((echo -en "$BEDROCKPING" && sleep 1) | ncat -w 1 -u 127.0.0.1 19132 | cut -c34- | awk -F\; '{ print $5 }' | xargs)
+  
+  if [ -n "$BEDROCKCONNECTIONS"]
+  then
+    BEDROCKCONNECTIONS=0
+  fi
+
+  CONNECTED=$((($CONNECTED + $JAVACONNECTIONS) + $BEDROCKCONNECTIONS))
   COUNTER=$(($COUNTER + 1))
   if [ $CONNECTED -gt 0 ] ## at least one active connection detected, break out of loop
   then
@@ -154,13 +159,24 @@ echo "We believe a connection has been made, switching to shutdown watcher."
 COUNTER=0
 while [ $COUNTER -le $SHUTDOWNMIN ]
 do
-  [ "$EDITION" == "java" ] && CONNECTIONS=$(netstat -atn | grep :25565 | grep ESTABLISHED | wc -l)
-  [ "$EDITION" == "bedrock" ] && CONNECTIONS=$((echo -en "$BEDROCKPING" && sleep 1) | ncat -w 1 -u 127.0.0.1 19132 | cut -c34- | awk -F\; '{ print $5 }')
-  [ -n "$CONNECTIONS" ] || CONNECTIONS=0
-  if [ $CONNECTIONS -lt 1 ]
+  JAVACONNECTIONS=$(netstat -atn | grep :25565 | grep ESTABLISHED | wc -l | xargs)
+  BEDROCKCONNECTIONS=$((echo -en "$BEDROCKPING" && sleep 1) | ncat -w 1 -u 127.0.0.1 19132 | cut -c34- | awk -F\; '{ print $5 }' | xargs)
+  
+  if [ -n "$BEDROCKCONNECTIONS"]
   then
-    echo "No active connections detected, $COUNTER out of $SHUTDOWNMIN minutes..."
-    COUNTER=$(($COUNTER + 1))
+    BEDROCKCONNECTIONS=0
+  fi
+
+  if [ $JAVACONNECTIONS -lt 1 ]
+  then
+    if [ $BEDROCKCONNECTIONS -lt 1 ]
+    then
+      echo "No active connections detected, $COUNTER out of $SHUTDOWNMIN minutes..."
+      COUNTER=$(($COUNTER + 1))
+    else
+      [ $COUNTER -gt 0 ] && echo "New connections active, zeroing counter."
+      COUNTER=0
+    fi
   else
     [ $COUNTER -gt 0 ] && echo "New connections active, zeroing counter."
     COUNTER=0

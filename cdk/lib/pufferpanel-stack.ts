@@ -42,21 +42,49 @@ export class PufferpanelStack extends Stack {
       removalPolicy: RemovalPolicy.SNAPSHOT,
     });
 
-    const accessPoint = new efs.AccessPoint(this, 'AccessPoint', {
+    const configAccessPoint = new efs.AccessPoint(this, 'ConfigAccessPoint', {
       fileSystem,
-      path: '/pufferpanel',
+      path: '/pufferpanel/config',
       posixUser: {
-        uid: '1000',
-        gid: '1000',
+        uid: '0',
+        gid: '0',
       },
       createAcl: {
-        ownerGid: '1000',
-        ownerUid: '1000',
+        ownerGid: '0',
+        ownerUid: '0',
         permissions: '0755',
       },
     });
 
-    const efsReadWriteDataPolicy = new iam.Policy(this, 'DataRWPolicy', {
+    const serversAccessPoint = new efs.AccessPoint(this, 'ServersAccessPoint', {
+      fileSystem,
+      path: '/pufferpanel/servers',
+      posixUser: {
+        uid: '0',
+        gid: '0',
+      },
+      createAcl: {
+        ownerGid: '0',
+        ownerUid: '0',
+        permissions: '0755',
+      },
+    });
+
+    const emailsAccessPoint = new efs.AccessPoint(this, 'EmailsAccessPoint', {
+      fileSystem,
+      path: '/pufferpanel/email',
+      posixUser: {
+        uid: '0',
+        gid: '0',
+      },
+      createAcl: {
+        ownerGid: '0',
+        ownerUid: '0',
+        permissions: '0755',
+      },
+    });
+
+    const configEfsReadWriteDataPolicy = new iam.Policy(this, 'ConfigDataRWPolicy', {
       statements: [
         new iam.PolicyStatement({
           sid: 'AllowReadWriteOnEFS',
@@ -69,7 +97,46 @@ export class PufferpanelStack extends Stack {
           resources: [fileSystem.fileSystemArn],
           conditions: {
             StringEquals: {
-              'elasticfilesystem:AccessPointArn': accessPoint.accessPointArn,
+              'elasticfilesystem:AccessPointArn': configAccessPoint.accessPointArn,
+            },
+          },
+        }),
+      ],
+    });
+
+    const serversEfsReadWriteDataPolicy = new iam.Policy(this, 'ServersDataRWPolicy', {
+      statements: [
+        new iam.PolicyStatement({
+          sid: 'AllowReadWriteOnEFS',
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'elasticfilesystem:ClientMount',
+            'elasticfilesystem:ClientWrite',
+            'elasticfilesystem:DescribeFileSystems',
+          ],
+          resources: [fileSystem.fileSystemArn],
+          conditions: {
+            StringEquals: {
+              'elasticfilesystem:AccessPointArn': serversAccessPoint.accessPointArn,
+            },
+          },
+        }),
+      ],
+    });
+    const emailsEfsReadWriteDataPolicy = new iam.Policy(this, 'EmailsDataRWPolicy', {
+      statements: [
+        new iam.PolicyStatement({
+          sid: 'AllowReadWriteOnEFS',
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'elasticfilesystem:ClientMount',
+            'elasticfilesystem:ClientWrite',
+            'elasticfilesystem:DescribeFileSystems',
+          ],
+          resources: [fileSystem.fileSystemArn],
+          conditions: {
+            StringEquals: {
+              'elasticfilesystem:AccessPointArn': emailsAccessPoint.accessPointArn,
             },
           },
         }),
@@ -81,7 +148,9 @@ export class PufferpanelStack extends Stack {
       description: 'Pufferpanel ECS task role',
     });
 
-    efsReadWriteDataPolicy.attachToRole(ecsTaskRole);
+    configEfsReadWriteDataPolicy.attachToRole(ecsTaskRole);
+    serversEfsReadWriteDataPolicy.attachToRole(ecsTaskRole);
+    emailsEfsReadWriteDataPolicy.attachToRole(ecsTaskRole);
 
     const cluster = new ecs.Cluster(this, 'Cluster', {
       clusterName: constants.CLUSTER_NAME,
@@ -104,7 +173,7 @@ export class PufferpanelStack extends Stack {
               fileSystemId: fileSystem.fileSystemId,
               transitEncryption: 'ENABLED',
               authorizationConfig: {
-                accessPointId: accessPoint.accessPointId,
+                accessPointId: configAccessPoint.accessPointId,
                 iam: 'ENABLED',
               },
             },
@@ -115,7 +184,7 @@ export class PufferpanelStack extends Stack {
               fileSystemId: fileSystem.fileSystemId,
               transitEncryption: 'ENABLED',
               authorizationConfig: {
-                accessPointId: accessPoint.accessPointId,
+                accessPointId: serversAccessPoint.accessPointId,
                 iam: 'ENABLED',
               },
             },
@@ -126,7 +195,7 @@ export class PufferpanelStack extends Stack {
               fileSystemId: fileSystem.fileSystemId,
               transitEncryption: 'ENABLED',
               authorizationConfig: {
-                accessPointId: accessPoint.accessPointId,
+                accessPointId: emailsAccessPoint.accessPointId,
                 iam: 'ENABLED',
               },
             },
@@ -214,7 +283,7 @@ export class PufferpanelStack extends Stack {
 
     serviceSecurityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
-      Port.tcp(80),
+      Port.tcp(8080),
     );
 
     serviceSecurityGroup.addIngressRule(
@@ -271,22 +340,37 @@ export class PufferpanelStack extends Stack {
 
     let snsTopicArn = '';
     /* Create SNS Topic if SNS_EMAIL is provided */
-    if (config.snsEmailAddress) {
+    if (config.snsEmailAddress || config.snsPhoneNumber) {
+
       const snsTopic = new sns.Topic(this, 'ServerSnsTopic', {
         displayName: 'Minecraft Server Notifications',
       });
 
       snsTopic.grantPublish(ecsTaskRole);
+      if (config.snsEmailAddress) {
+        const emailSubscription = new sns.Subscription(
+          this,
+          'EmailSubscription',
+          {
+            protocol: sns.SubscriptionProtocol.EMAIL,
+            topic: snsTopic,
+            endpoint: config.snsEmailAddress,
+          }
+        );
+      }
 
-      const emailSubscription = new sns.Subscription(
-        this,
-        'EmailSubscription',
-        {
-          protocol: sns.SubscriptionProtocol.EMAIL,
-          topic: snsTopic,
-          endpoint: config.snsEmailAddress,
-        }
-      );
+      if (config.snsPhoneNumber) {
+        const smsSubscription = new sns.Subscription(
+          this,
+          'SMSSubscription',
+          {
+            protocol: sns.SubscriptionProtocol.SMS,
+            topic: snsTopic,
+            endpoint: config.snsPhoneNumber,
+          }
+        );
+      }
+
       snsTopicArn = snsTopic.topicArn;
     }
 
@@ -295,12 +379,12 @@ export class PufferpanelStack extends Stack {
       'WatchDogContainer',
       {
         containerName: constants.WATCHDOG_SERVER_CONTAINER_NAME,
-        image: isDockerInstalled()
+        image: isDockerInstalled() && false
           ? ecs.ContainerImage.fromAsset(
               path.resolve(__dirname, '../../minecraft-ecsfargate-watchdog/')
             )
           : ecs.ContainerImage.fromRegistry(
-              'doctorray/minecraft-ecsfargate-watchdog'
+              'fridaystreet/minecraft-ecsfargate-watchdog'
             ),
         essential: true,
         taskDefinition: taskDefinition,
@@ -308,6 +392,7 @@ export class PufferpanelStack extends Stack {
           CLUSTER: constants.CLUSTER_NAME,
           SERVICE: constants.SERVICE_NAME,
           DNSZONE: hostedZoneId,
+          EDITION: 'java',
           SERVERNAME: `${config.subdomainPart}.${config.domainName}`,
           SNSTOPIC: snsTopicArn,
           TWILIOFROM: config.twilio.phoneFrom,

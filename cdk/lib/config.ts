@@ -34,6 +34,7 @@ const {
   VPC_ID,
   MINECRAFT_IMAGE_ENV_VARS_JSON,
   SNS_EMAIL_ADDRESS,
+  SNS_PHONE_NUMBER,
   TWILIO_PHONE_FROM,
   TWILIO_PHONE_TO,
   TWILIO_ACCOUNT_ID,
@@ -56,6 +57,7 @@ export const resolveConfig = (): StackConfig => ({
     MINECRAFT_IMAGE_ENV_VARS_JSON
   ),
   snsEmailAddress: SNS_EMAIL_ADDRESS || '',
+  snsPhoneNumber: SNS_PHONE_NUMBER || '',
   twilio: {
     phoneFrom: TWILIO_PHONE_FROM || '',
     phoneTo: TWILIO_PHONE_TO || '',

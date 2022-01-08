@@ -19,3 +19,5 @@ With any changes, the container needs to be able to do the following without err
 - Catch SIGTERM and properly shut down
 
 All of these tests should be performed on Java and Bedrock servers before pushing the `latest` tag.
+
+Note - if building dockerfile on non amd64 system (eg macbook M1 arm) need to add --platform linux/amd64 to the build command
