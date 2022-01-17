@@ -86,14 +86,15 @@ COUNTER=0
 PLAYERS=0
 MAXPLAYERS=0
 ONLINE=false
+TOTALCOUNT=$(( $STARTUPMIN*2 ))
 while [ $PLAYERS -lt 1 ]
 do
   COUNTER=$(($COUNTER + 1))
   if [ $ONLINE = false ]
   then
-    echo Waiting for connection, attempt $COUNTER out of $STARTUPMIN mins...
+    echo "Waiting for connection, attempt $COUNTER/$TOTALCOUNT over $STARTUPMIN mins..."
   else
-    echo Waiting for a player to connect, attempt $COUNTER out of $STARTUPMIN mins...
+    echo "Waiting for a player to connect, attempt $COUNTER/$TOTALCOUNT over $STARTUPMIN mins..."
   fi
   json=$(source ~/.bashrc && node minecraft-ping.js $PUBLICIP)
   echo "server check"
@@ -153,7 +154,7 @@ do
 
   if [ $PLAYERS -lt 1 ]
   then
-      echo "No active connections detected, attempt $COUNTER out of $SHUTDOWNMIN minutes..."
+      echo "No active connections detected, attempt $COUNTER/$TOTALCOUNT over $SHUTDOWNMIN minutes..."
   else
     [ $COUNTER -gt 0 ] && echo "New connections active, zeroing counter."
     COUNTER=0
