@@ -45,14 +45,14 @@ TASK=$(curl -s ${ECS_CONTAINER_METADATA_URI_V4}/task | jq -r '.TaskARN' | awk -F
 echo I believe our task id is $TASK
 
 ## get eni from from ECS
-ENI=$(aws ecs describe-tasks --cluster $CLUSTER --tasks $TASK --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value | [0]" --output text)
+ENI=$(source ~/.bashrc && node aws-ecs-get-eni.js $CLUSTER $TASK)
 echo I believe our eni is $ENI
 
 ## get public ip address from EC2
-PUBLICIP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+PUBLICIP=$(source ~/.bashrc && node aws-eni-get-public-ip.js $ENI)
 echo "I believe our public IP address is $PUBLICIP"
 
-[ -n "$PUBLICIP" ] || { echo "PUBLICIP could not be determined" ; exit 1; }
+[ -n "$PUBLICIP" ] || { echo "PUBLICIP could not be determined via aws cli" ; exit 1; }
 
 ## update public dns record
 echo "Updating DNS record for $SERVERNAME to $PUBLICIP"
@@ -80,46 +80,32 @@ EOF
 aws route53 change-resource-record-sets --hosted-zone-id $DNSZONE --change-batch file://minecraft-dns.json
 
 
-echo "Checking every 30 seconds for service to become available and a player to connect, up to $STARTUPMIN minutes..."
+echo "Checking every 2 minute for active connections to Minecraft, up to $STARTUPMIN minutes..."
 
 COUNTER=0
 PLAYERS=0
-MAXPLAYERS=0
 ONLINE=false
 while [ $PLAYERS -lt 1 ]
 do
-  COUNTER=$(($COUNTER + 1))
-  if [ $ONLINE = false ]
-  then
-    echo Waiting for connection, attempt $COUNTER out of $STARTUPMIN mins...
-  else
-    echo Waiting for a player to connect, attempt $COUNTER out of $STARTUPMIN mins...
-  fi
+  echo Waiting for connection, minute $COUNTER out of $STARTUPMIN...
   json=$(source ~/.bashrc && node minecraft-ping.js $PUBLICIP)
-  echo "server check"
-  echo "result: $json"
-  error=`echo $json | jq '.error' | grep ECONNREFUSED` 
-  if [ ! -z "$error" ]
-  then
-    echo "error: $error"
-    for i in $(seq 1 30) ; do sleep 1; done
-    continue
-  fi
-  PLAYERS=`echo $json | jq '.players.online'`
-  MAXPLAYERS=`echo $json | jq '.players.max'`
+  echo "server check result"
+  echo $json
+  PLAYERS=`echo $json | jq '.players.now'`
   echo "Players online: $PLAYERS"
+  status=`echo $json | jq '.online'`
 
   if [ $ONLINE = false ]
   then
-    if [ $MAXPLAYERS -gt 0 ]
+    if [ $status = true ]
     then
-      echo "minecraft service has started, max allowed players $MAXPLAYERS" 
       ONLINE=true
       ## Send startup notification message
-      send_notification startup
+      echo send_notification startup
     fi
   fi
 
+  COUNTER=$(($COUNTER + 1))
   if [ $PLAYERS -gt 0 ] ## at least one active connection detected, break out of loop
   then
     break
@@ -137,23 +123,15 @@ echo "We believe a connection has been made, switching to shutdown watcher."
 COUNTER=0
 while [ $COUNTER -le $SHUTDOWNMIN ]
 do
-  COUNTER=$(($COUNTER + 1))      
   json=$(source ~/.bashrc && node minecraft-ping.js $PUBLICIP)
-  echo "server check"
-  echo "result: $json"
-  error=`echo $json | jq '.error' | grep ECONNREFUSED` 
-  if [ ! -z "$error" ]
-  then
-    echo "error: $error"
-    for i in $(seq 1 30) ; do sleep 1; done
-    continue
-  fi
-  PLAYERS=`echo $json | jq '.players.online'`
+  echo $json
+  PLAYERS=`echo $json | jq '.players.now'`
   echo "Players online: $PLAYERS"
 
   if [ $PLAYERS -lt 1 ]
   then
-      echo "No active connections detected, attempt $COUNTER out of $SHUTDOWNMIN minutes..."
+      echo "No active connections detected, $COUNTER out of $SHUTDOWNMIN minutes..."
+      COUNTER=$(($COUNTER + 1))      
   else
     [ $COUNTER -gt 0 ] && echo "New connections active, zeroing counter."
     COUNTER=0

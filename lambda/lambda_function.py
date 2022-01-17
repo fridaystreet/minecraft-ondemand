@@ -21,8 +21,19 @@ def lambda_handler(event, context):
         cluster=CLUSTER,
         services=[SERVICE],
     )
-
+    
     desired = response["services"][0]["desiredCount"]
+    pending = response["services"][0]["pendingCount"]
+    active = response["services"][0]["runningCount"]
+
+    if desired == 1 and pending == 0 and active == 0:
+        ecs.update_service(
+            cluster=CLUSTER,
+            service=SERVICE,
+            desiredCount=0,
+        )
+        print("reseting desiredCount to 0")
+        desired = 0
 
     if desired == 0:
         ecs.update_service(

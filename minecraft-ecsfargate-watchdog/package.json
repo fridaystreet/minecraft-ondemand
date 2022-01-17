@@ -1,0 +1,9 @@
+{
+  "name": "minecraft-ecsfargate-watchdog",
+  "version": "1.0.0",
+  "scripts": {},
+  "devDependencies": {},
+  "dependencies": {
+    "minecraft-protocol": "^1.30.0"
+  }
+}

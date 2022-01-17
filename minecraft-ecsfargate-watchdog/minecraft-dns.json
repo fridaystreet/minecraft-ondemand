@@ -16,3 +16,21 @@
     }
   ]
 }
+{
+  "Comment": "Fargate Public IP change for Minecraft Server",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "",
+        "Type": "A",
+        "TTL": 30,
+        "ResourceRecords": [
+          {
+            "Value": ""
+          }
+        ]
+      }
+    }
+  ]
+}
