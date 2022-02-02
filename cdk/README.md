@@ -62,7 +62,15 @@ export CDK_DEFAULT_REGION=us-east-1
 ```
 Note - must be set to us-east-1
 
-### 5. Build and Deploy
+
+### 5. Alexa SDK Credentials
+If using the alexa startup skill you need to setup the alexa console sdk credentials
+
+follow the section titled 'Get Alexa Developer Credentials' from the following blog post
+
+https://aws.amazon.com/blogs/devops/deploying-alexa-skills-with-aws-cdk/
+
+### 6. Build and Deploy
 
 Build and deploy the solution by running:
 

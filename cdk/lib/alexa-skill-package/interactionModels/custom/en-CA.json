@@ -1,0 +1,122 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "jensenstyle minecraft",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": [
+            "stop"
+          ]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "start",
+          "slots": [
+            {
+              "name": "password",
+              "type": "password",
+              "samples": [
+                "how do we drive this thing"
+              ],
+              "multipleValues": {
+                "enabled": true
+              }
+            }
+          ],
+          "samples": [
+            "start"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "id": "password",
+              "name": {
+                "value": "how do we drive this thing"
+              }
+            }
+          ],
+          "name": "password"
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "start",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "password",
+              "type": "password",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1619534609850.1496000449730"
+              },
+              "validations": [
+                {
+                  "type": "isInSet",
+                  "prompt": "Slot.Validation.179302083278.1003272663025.1295931345528",
+                  "values": [
+                    "how do we drive this thing"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    },
+    "prompts": [
+      {
+        "id": "Slot.Validation.179302083278.1003272663025.1295931345528",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "knock knock, you\u0027ll have to try again"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.179302083278.1003272663025",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Two fish in a tank, one says to the other?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.1619534609850.1496000449730",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Two fish in a tank, one says to the other?"
+          }
+        ]
+      }
+    ]
+  },
+  "version": "20"
+}

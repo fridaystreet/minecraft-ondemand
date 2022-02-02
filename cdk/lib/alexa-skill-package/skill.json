@@ -1,0 +1,124 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-CA": {
+          "summary": "Skill to control an on-demand minecraft server run by JensenStyleMinecraft",
+          "examplePhrases": [
+            "Alexa start jensenstyle minecraft",
+            "start",
+            "help"
+          ],
+          "keywords": [
+            "minecraft"
+          ],
+          "name": "JensenStyle Minecraft",
+          "description": "A skill that controls a private on-demand minecraft server run by JensenStyleMinecraft\n\nDeveloped by TwofishinaTank",
+          "smallIconUri": "file://assets/images/en-CA_smallIconUri.png",
+          "largeIconUri": "file://assets/images/en-CA_largeIconUri.png"
+        },
+        "en-US": {
+          "summary": "Skill to control an on-demand minecraft server run by JensenStyleMinecraft",
+          "examplePhrases": [
+            "Alexa start jensenstyle minecraft",
+            "start",
+            "help"
+          ],
+          "keywords": [
+            "minecraft"
+          ],
+          "name": "JensenStyle Minecraft",
+          "description": "A skill that controls a private on-demand minecraft server run by JensenStyleMinecraft\n\nDeveloped by TwofishinaTank",
+          "smallIconUri": "file://assets/images/en-US_smallIconUri.png",
+          "largeIconUri": "file://assets/images/en-US_largeIconUri.png"
+        },
+        "en-IN": {
+          "summary": "Skill to control an on-demand minecraft server run by JensenStyleMinecraft",
+          "examplePhrases": [
+            "Alexa start jensenstyle minecraft",
+            "start",
+            "help"
+          ],
+          "keywords": [
+            "minecraft"
+          ],
+          "name": "JensenStyle Minecraft",
+          "description": "A skill that controls a private on-demand minecraft server run by JensenStyleMinecraft\n\nDeveloped by TwofishinaTank",
+          "smallIconUri": "file://assets/images/en-IN_smallIconUri.png",
+          "largeIconUri": "file://assets/images/en-IN_largeIconUri.png"
+        },
+        "en-AU": {
+          "summary": "Skill to control an on-demand minecraft server run by JensenStyleMinecraft",
+          "examplePhrases": [
+            "Alexa start jensenstyle minecraft",
+            "start",
+            "help"
+          ],
+          "keywords": [
+            "minecraft"
+          ],
+          "name": "JensenStyle Minecraft",
+          "description": "A skill that controls a private on-demand minecraft server run by JensenStyleMinecraft\n\nDeveloped by TwofishinaTank",
+          "smallIconUri": "file://assets/images/en-AU_smallIconUri.png",
+          "largeIconUri": "file://assets/images/en-AU_largeIconUri.png"
+        },
+        "en-GB": {
+          "summary": "Skill to control an on-demand minecraft server run by JensenStyleMinecraft",
+          "examplePhrases": [
+            "Alexa start jensenstyle minecraft",
+            "start",
+            "help"
+          ],
+          "keywords": [
+            "minecraft"
+          ],
+          "name": "JensenStyle Minecraft",
+          "description": "A skill that controls a private on-demand minecraft server run by JensenStyleMinecraft\n\nDeveloped by TwofishinaTank",
+          "smallIconUri": "file://assets/images/en-GB_smallIconUri.png",
+          "largeIconUri": "file://assets/images/en-GB_largeIconUri.png"
+        }
+      },
+      "automaticDistribution": {
+        "isActive": false
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "alexa jensenstyle minecraft\nalexa start\nthe answer to the startup question is how do you drive this thing\n\nThis starts our private on-demand minecraft server that our kids and their friends use to play minecraft together. The start intent is configured to ask for a password and validate it before the intent is allowed (simple way of securing the access without need for oauth).",
+      "category": "KNOWLEDGE_AND_TRIVIA",
+      "distributionMode": "PUBLIC",
+      "automaticClonedLocale": {
+        "locales": [
+          {
+            "source": "en-AU"
+          }
+        ]
+      },
+      "distributionCountries": [
+        "AU"
+      ]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:ap-southeast-2:903815192543:function:pufferpanel-server-stack-AlexaLauncherLambda6A9D41-4ijR00RvUpbo"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "locales": {
+        "en-CA": {},
+        "en-US": {},
+        "en-IN": {},
+        "en-AU": {},
+        "en-GB": {}
+      },
+      "containsAds": false,
+      "isExportCompliant": true,
+      "isChildDirected": false,
+      "usesPersonalInfo": false
+    }
+  }
+}

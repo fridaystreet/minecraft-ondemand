@@ -2,3 +2,5 @@
 .DS_Store
 
 minecraft-ecsfargate-watchdog/node_modules/
+
+lambda/alexa-startup-skill/node_modules/

@@ -135,6 +135,8 @@ export interface StackConfig {
    * @default '{ "EULA": "TRUE" }'
    */
   minecraftImageEnv: MinecraftImageEnv;
+  disableRoute53Trigger: boolean;
+  disableAlexaStartupSkill: boolean;
   /**
    * Setting to `true` enables debug mode.
    *

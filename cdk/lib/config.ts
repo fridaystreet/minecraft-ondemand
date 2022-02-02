@@ -32,6 +32,8 @@ const {
   TASK_CPU,
   TASK_MEMORY,
   VPC_ID,
+  DISABLE_ROUTE53_TRIGGER,
+  DISABLE_ALEXA_STARTUP_SKILL,
   MINECRAFT_IMAGE_ENV_VARS_JSON,
   SNS_EMAIL_ADDRESS,
   SNS_PHONE_NUMBER,
@@ -56,6 +58,8 @@ export const resolveConfig = (): StackConfig => ({
   minecraftImageEnv: resolveMinecraftEnvVars(
     MINECRAFT_IMAGE_ENV_VARS_JSON
   ),
+  disableRoute53Trigger: stringAsBoolean(DISABLE_ROUTE53_TRIGGER) || true,
+  disableAlexaStartupSkill: stringAsBoolean(DISABLE_ALEXA_STARTUP_SKILL) || false,
   snsEmailAddress: SNS_EMAIL_ADDRESS || '',
   snsPhoneNumber: SNS_PHONE_NUMBER || '',
   twilio: {

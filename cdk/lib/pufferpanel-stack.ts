@@ -3,6 +3,7 @@ import {
   Stack,
   StackProps,
   aws_ec2 as ec2,
+  aws_lambda as lambda,
   aws_efs as efs,
   aws_iam as iam,
   aws_ecs as ecs,
@@ -333,7 +334,7 @@ export class PufferpanelStack extends Stack {
       this,
       'Route53HostedZoneIdReader',
       {
-        parameterName: constants.HOSTED_ZONE_SSM_PARAMETER,
+        parameterName: `${constants.SSM_PARAM_PREFIX}${constants.HOSTED_ZONE_SSM_PARAMETER}`,
         region: constants.DOMAIN_STACK_REGION,
       }
     ).getParameterValue();
@@ -441,6 +442,23 @@ export class PufferpanelStack extends Stack {
 
     serviceControlPolicy.attachToRole(ecsTaskRole);
 
+    const alexaLauncherLambdaRoleArn = new SSMParameterReader(
+      this,
+      'alexaLauncherLambdaRoleArn',
+      {
+        parameterName: `${constants.SSM_PARAM_PREFIX}${constants.ALEXA_LAUNCHER_LAMBDA_ARN_SSM_PARAMETER}`,
+        region: config.serverRegion,
+      }
+    ).getParameterValue();
+
+
+    const alexaLauncherLambdaRole = iam.Role.fromRoleArn(
+      this,
+      'alexaLauncherLambdaRole',
+      alexaLauncherLambdaRoleArn
+    );
+
+    serviceControlPolicy.attachToRole(alexaLauncherLambdaRole);
     /**
      * Add service control policy to the launcher lambda from the other stack
      */
@@ -448,10 +466,11 @@ export class PufferpanelStack extends Stack {
       this,
       'launcherLambdaRoleArn',
       {
-        parameterName: constants.LAUNCHER_LAMBDA_ARN_SSM_PARAMETER,
+        parameterName: `${constants.SSM_PARAM_PREFIX}${constants.LAUNCHER_LAMBDA_ARN_SSM_PARAMETER}`,
         region: constants.DOMAIN_STACK_REGION,
       }
     ).getParameterValue();
+
     const launcherLambdaRole = iam.Role.fromRoleArn(
       this,
       'LauncherLambdaRole',

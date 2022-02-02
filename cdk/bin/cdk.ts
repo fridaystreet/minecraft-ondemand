@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
+import { AlexaSkillStack } from '../lib/alexa-skill-stack';
 import { PufferpanelStack } from '../lib/pufferpanel-stack';
 import { DomainStack } from '../lib/domain-stack';
 import { constants } from '../lib/constants';
@@ -37,4 +38,16 @@ const pufferpanelStack = new PufferpanelStack(app, 'pufferpanel-server-stack', {
   config,
 });
 
+const alexaSkillStack = new AlexaSkillStack(app, 'pufferpanel-alexa-skill-stack', {
+  env: {
+    region: config.serverRegion,
+    /* Account must be specified to allow for VPC lookup */
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+  },
+  config,
+});
+
+if (!config.disableAlexaStartupSkill) {
+  pufferpanelStack.addDependency(alexaSkillStack);
+}
 pufferpanelStack.addDependency(domainStack);

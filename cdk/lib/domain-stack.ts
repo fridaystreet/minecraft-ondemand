@@ -109,40 +109,6 @@ export class DomainStack extends Stack {
     /* Set dependency on A record to ensure it is removed first on deletion */
     aRecord.node.addDependency(subdomainHostedZone);
 
-    const launcherLambda = new lambda.Function(this, 'LauncherLambda', {
-      code: lambda.Code.fromAsset(path.resolve(__dirname, '../../lambda')),
-      handler: 'lambda_function.lambda_handler',
-      runtime: lambda.Runtime.PYTHON_3_8,
-      environment: {
-        REGION: config.serverRegion,
-        CLUSTER: constants.CLUSTER_NAME,
-        SERVICE: constants.SERVICE_NAME,
-      },
-      logRetention: logs.RetentionDays.THREE_DAYS, // TODO: parameterize
-    });
-
-    /**
-     * Give cloudwatch permission to invoke our lambda when our subscription filter
-     * picks up DNS queries.
-     */
-    launcherLambda.addPermission('CWPermission', {
-      principal: new iam.ServicePrincipal(
-        `logs.${constants.DOMAIN_STACK_REGION}.amazonaws.com`
-      ),
-      action: 'lambda:InvokeFunction',
-      sourceAccount: this.account,
-      sourceArn: queryLogGroup.logGroupArn,
-    });
-
-    /**
-     * Create our log subscription filter to catch any log events containing
-     * our subdomain name and send them to our launcher lambda.
-     */
-    queryLogGroup.addSubscriptionFilter('SubscriptionFilter', {
-      destination: new logDestinations.LambdaDestination(launcherLambda),
-      filterPattern: logs.FilterPattern.anyTerm(subdomain),
-    });
-
     /**
      * Add the subdomain hosted zone ID to SSM since we cannot consume a cross-stack
      * references across regions.
@@ -150,20 +116,56 @@ export class DomainStack extends Stack {
     new ssm.StringParameter(this, 'HostedZoneParam', {
       allowedPattern: '.*',
       description: 'Hosted zone ID for minecraft server',
-      parameterName: constants.HOSTED_ZONE_SSM_PARAMETER,
+      parameterName: `${constants.SSM_PARAM_PREFIX}${constants.HOSTED_ZONE_SSM_PARAMETER}`,
       stringValue: subdomainHostedZone.hostedZoneId,
     });
+    
+    if (!config.disableRoute53Trigger) {
+      const launcherLambda = new lambda.Function(this, 'LauncherLambda', {
+        code: lambda.Code.fromAsset(path.resolve(__dirname, '../../lambda/route53-trigger')),
+        handler: 'lambda_function.lambda_handler',
+        runtime: lambda.Runtime.PYTHON_3_8,
+        environment: {
+          REGION: config.serverRegion,
+          CLUSTER: constants.CLUSTER_NAME,
+          SERVICE: constants.SERVICE_NAME,
+        },
+        logRetention: logs.RetentionDays.THREE_DAYS, // TODO: parameterize
+      });
 
-    /**
-     * Add the ARN for the launcher lambda execution role to SSM so we can
-     * attach the policy for accessing the minecraft server after it has been
-     * created.
-     */
-    new ssm.StringParameter(this, 'LauncherLambdaParam', {
-      allowedPattern: '.*S.*',
-      description: 'Minecraft launcher execution role ARN',
-      parameterName: constants.LAUNCHER_LAMBDA_ARN_SSM_PARAMETER,
-      stringValue: launcherLambda.role?.roleArn || '',
-    });
+      /**
+       * Give cloudwatch permission to invoke our lambda when our subscription filter
+       * picks up DNS queries.
+       */
+      launcherLambda.addPermission('CWPermission', {
+        principal: new iam.ServicePrincipal(
+          `logs.${constants.DOMAIN_STACK_REGION}.amazonaws.com`
+        ),
+        action: 'lambda:InvokeFunction',
+        sourceAccount: this.account,
+        sourceArn: queryLogGroup.logGroupArn,
+      });
+
+      /**
+       * Create our log subscription filter to catch any log events containing
+       * our subdomain name and send them to our launcher lambda.
+       */
+      queryLogGroup.addSubscriptionFilter('SubscriptionFilter', {
+        destination: new logDestinations.LambdaDestination(launcherLambda),
+        filterPattern: logs.FilterPattern.anyTerm(subdomain),
+      });
+
+      /**
+       * Add the ARN for the launcher lambda execution role to SSM so we can
+       * attach the policy for accessing the minecraft server after it has been
+       * created.
+       */
+      new ssm.StringParameter(this, 'LauncherLambdaParam', {
+        allowedPattern: '.*S.*',
+        description: 'Minecraft launcher execution role ARN',
+        parameterName: `${constants.SSM_PARAM_PREFIX}${constants.LAUNCHER_LAMBDA_ARN_SSM_PARAMETER}`,
+        stringValue: launcherLambda.role?.roleArn || '',
+      });
+    }
   }
 }
